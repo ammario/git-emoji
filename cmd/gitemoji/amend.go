@@ -11,6 +11,7 @@ import (
 	_ "embed"
 
 	"github.com/coder/flog"
+	"github.com/fatih/color"
 	"github.com/forPelevin/gomoji"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
@@ -65,6 +66,9 @@ func amendCmd() *cobra.Command {
 				}
 			}
 
+			// Remove existing emojis to make it easy to retry.
+			commitMessage = gomoji.RemoveEmojis(commitMessage)
+
 			commitMessage = strings.TrimSpace(commitMessage)
 
 			resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
@@ -91,16 +95,16 @@ func amendCmd() *cobra.Command {
 
 			newCommitMessage := best + " " + commitMessage
 
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", newCommitMessage)
 			if dryRun {
-				flog.Infof("Dry run, not actually amending")
+				color.Blue("Dry run, would have amended to: \n")
 			} else {
-				flog.Infof("Amending commit")
+				color.Magenta("> git commit --amend \n")
 				err := amendName(newCommitMessage)
 				if err != nil {
 					flog.Fatalf("amend: %v", err)
 				}
 			}
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", newCommitMessage)
 		},
 	}
 
