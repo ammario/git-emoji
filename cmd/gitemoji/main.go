@@ -116,7 +116,7 @@ func main() {
 			}
 
 			if newCommitMessage == originalCommitMessage {
-				color.Yellow("No change, exiting\n")
+				color.Green("Your current emoji is already perfect, exiting\n")
 				return
 			}
 
@@ -128,7 +128,8 @@ func main() {
 				prompt:
 					for {
 						p := promptui.Prompt{
-							Label: "Commit? (r: retry, y: accept) (r/y)",
+							Label:   "Commit? (r: retry, y: accept) (r/y)",
+							Default: "y",
 						}
 						result, err := p.Run()
 						if err != nil {
@@ -146,7 +147,7 @@ func main() {
 					}
 				}
 
-				color.Magenta("> git commit --amend \n")
+				color.Green("> git commit --amend \n")
 				err := amendName(newCommitMessage)
 				if err != nil {
 					flog.Fatalf("amend: %v", err)
