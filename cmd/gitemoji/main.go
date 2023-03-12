@@ -82,30 +82,36 @@ func main() {
 			// Remove existing emojis to make it easy to retry.
 			originalCommitMessageNoEmoji := gomoji.RemoveEmojis(originalCommitMessage)
 
-			resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
-				Model:       "text-davinci-003",
-				MaxTokens:   10,
-				Temperature: 0.8,
-				Prompt:      promptPrelude + "\nCommit: " + gomoji.RemoveEmojis(originalCommitMessageNoEmoji),
-			})
-			if err != nil {
-				flog.Fatalf("create completion: %v", err)
-			}
-			var best string
-			for _, choice := range resp.Choices {
-				// flog.Infof("completion: %q", choice.Text)
-				emojis := gomoji.FindAll(choice.Text)
-				if len(emojis) > 0 {
-					best = emojis[0].Character
-					break
+			try := func() string {
+				resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
+					Model:       "text-davinci-003",
+					MaxTokens:   10,
+					Temperature: 0.8,
+					Prompt:      promptPrelude + "\nCommit: " + gomoji.RemoveEmojis(originalCommitMessageNoEmoji),
+				})
+				if err != nil {
+					flog.Fatalf("create completion: %v", err)
 				}
-			}
-			if best == "" {
-				color.Yellow("No emoji found, exiting\n")
-				return
+				var best string
+				for _, choice := range resp.Choices {
+					emojis := gomoji.FindAll(choice.Text)
+					if len(emojis) > 0 {
+						best = emojis[0].Character
+						break
+					}
+				}
+				if best == "" {
+					color.Yellow("No emoji found\n")
+					return ""
+				}
+
+				return best + " " + originalCommitMessageNoEmoji
 			}
 
-			newCommitMessage := best + " " + originalCommitMessageNoEmoji
+			newCommitMessage := try()
+			if newCommitMessage == "" {
+				return
+			}
 
 			if newCommitMessage == originalCommitMessage {
 				color.Yellow("No change, exiting\n")
@@ -118,7 +124,7 @@ func main() {
 			} else {
 				if !adventureMode {
 					p := promptui.Prompt{
-						Label: "Commit? (y/n)",
+						Label: "Commit? (y/r)",
 					}
 					result, err := p.Run()
 					if err != nil {
@@ -131,7 +137,7 @@ func main() {
 				}
 
 				color.Magenta("> git commit --amend \n")
-				err = amendName(newCommitMessage)
+				err := amendName(newCommitMessage)
 				if err != nil {
 					flog.Fatalf("amend: %v", err)
 				}
