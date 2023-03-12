@@ -105,7 +105,9 @@ func main() {
 					return ""
 				}
 
-				return best + " " + originalCommitMessageNoEmoji
+				m := best + " " + originalCommitMessageNoEmoji
+				fmt.Fprintf(cmd.OutOrStdout(), "%s\n", m)
+				return m
 			}
 
 			newCommitMessage := try()
@@ -118,21 +120,29 @@ func main() {
 				return
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", newCommitMessage)
 			if dryRun {
 				color.Blue("Dry run, not amending\n")
 			} else {
+
 				if !adventureMode {
-					p := promptui.Prompt{
-						Label: "Commit? (y/r)",
-					}
-					result, err := p.Run()
-					if err != nil {
-						flog.Errorf("Prompt failed %v\n", err)
-					}
-					if result != "y" {
-						color.Yellow("Exiting")
-						os.Exit(1)
+				prompt:
+					for {
+						p := promptui.Prompt{
+							Label: "Commit? (r: retry, y: accept) (r/y)",
+						}
+						result, err := p.Run()
+						if err != nil {
+							flog.Errorf("Prompt failed %v\n", err)
+						}
+						switch {
+						case result == "r":
+							newCommitMessage = try()
+						case result == "y":
+							break prompt
+						default:
+							color.Yellow("Exiting")
+							os.Exit(1)
+						}
 					}
 				}
 
