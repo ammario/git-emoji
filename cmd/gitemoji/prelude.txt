@@ -1,0 +1,17 @@
+Print the emoji that best describes the following commit message.
+Be cute, creative and friendly. Print nothing but the emoji.
+
+Commit: Improve performance in database
+Emoji: ⚡️
+
+Commit: Fix small typo
+Emoji: 🔎
+
+Commit: fix: allow the BINARY_DIR to be configured in the agent script
+Emoji: 🔨
+
+Commit: fix: Prevent infinite redirects on oidc errors
+Emoji: ♾
+
+Commit: fix: panic on deleted template
+Emoji: 😱

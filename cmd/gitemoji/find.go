@@ -4,12 +4,16 @@ import (
 	"io"
 	"os"
 
+	_ "embed"
+
 	"github.com/coder/flog"
+	"github.com/forPelevin/gomoji"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 )
 
-const promptPrelude = "Print the emoji that best describes the following commit message. Print nothing but the emoji.\n"
+//go:embed prelude.txt
+var promptPrelude string
 
 func findCmd() *cobra.Command {
 	return &cobra.Command{
@@ -53,16 +57,27 @@ func findCmd() *cobra.Command {
 			}
 
 			resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
-				// Model: model.FineTunedModel,
-				Model:       "text-davinci-003",
-				MaxTokens:   3,
-				Temperature: 0.9,
-				Prompt:      promptPrelude + string(stdin),
+				// Model:     model.FineTunedModel,
+				Model:     "text-davinci-003",
+				MaxTokens: 10,
+				Prompt:    promptPrelude + "\nCommit: " + string(stdin),
 			})
 			if err != nil {
 				flog.Fatalf("create completion with %+v: %v", model, err)
 			}
-			flog.Infof("completion: %q", resp.Choices[0].Text)
+			var best string
+			for _, choice := range resp.Choices {
+				flog.Infof("completion: %q", choice.Text)
+				emojis := gomoji.FindAll(choice.Text)
+				if len(emojis) > 0 {
+					best = emojis[0].Character
+					break
+				}
+			}
+			if best == "" {
+				flog.Errorf("no emoji found")
+				os.Exit(20)
+			}
 		},
 	}
 }
