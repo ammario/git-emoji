@@ -13,6 +13,7 @@ import (
 	"github.com/coder/flog"
 	"github.com/fatih/color"
 	"github.com/forPelevin/gomoji"
+	"github.com/manifoldco/promptui"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 )
@@ -51,8 +52,9 @@ func amendName(s string) error {
 
 func main() {
 	var (
-		readStdin bool
-		dryRun    bool
+		readStdin     bool
+		dryRun        bool
+		adventureMode bool
 	)
 	cmd := &cobra.Command{
 		Use:   "gitemoji",
@@ -110,21 +112,36 @@ func main() {
 				return
 			}
 
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", newCommitMessage)
 			if dryRun {
-				color.Blue("Dry run, would have amended to: \n")
+				color.Blue("Dry run, not amending\n")
 			} else {
+				if !adventureMode {
+					p := promptui.Prompt{
+						Label: "Commit? (y/n)",
+					}
+					result, err := p.Run()
+					if err != nil {
+						flog.Errorf("Prompt failed %v\n", err)
+					}
+					if result != "y" {
+						color.Yellow("Exiting")
+						os.Exit(1)
+					}
+				}
+
 				color.Magenta("> git commit --amend \n")
-				err := amendName(newCommitMessage)
+				err = amendName(newCommitMessage)
 				if err != nil {
 					flog.Fatalf("amend: %v", err)
 				}
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", newCommitMessage)
 		},
 	}
 
 	cmd.Flags().BoolVar(&readStdin, "read-stdin", false, "read commit message from stdin")
 	cmd.Flags().BoolVar(&dryRun, "dry", false, "don't actually amend the commit, just print the new message")
+	cmd.Flags().BoolVarP(&adventureMode, "adventure", "y", false, "skip prompts, adventure mode")
 
 	err := cmd.Execute()
 	if err != nil {
