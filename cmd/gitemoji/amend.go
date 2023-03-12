@@ -72,9 +72,10 @@ func amendCmd() *cobra.Command {
 			commitMessage = strings.TrimSpace(commitMessage)
 
 			resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
-				Model:     "text-davinci-003",
-				MaxTokens: 10,
-				Prompt:    promptPrelude + "\nCommit: " + commitMessage,
+				Model:       "text-davinci-003",
+				MaxTokens:   10,
+				Temperature: 0.8,
+				Prompt:      promptPrelude + "\nCommit: " + commitMessage,
 			})
 			if err != nil {
 				flog.Fatalf("create completion: %v", err)
@@ -89,8 +90,8 @@ func amendCmd() *cobra.Command {
 				}
 			}
 			if best == "" {
-				flog.Errorf("no emoji found")
-				os.Exit(20)
+				color.Yellow("No emoji found, exiting\n")
+				return
 			}
 
 			newCommitMessage := best + " " + commitMessage
