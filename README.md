@@ -1,6 +1,6 @@
 # 🤪 git-emoji
 
-Spruce up your commit messages with emojis courtesy of GPT-3 and [carloscuesta/gitmoji](https://github.com/carloscuesta/gitmoji/blob/master/packages/gitmojis/src/gitmojis.json).
+Spruce up your commit messages with emojis courtesy of GPT-3.
 
 ## Usage
 

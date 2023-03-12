@@ -10,7 +10,6 @@ func main() {
 		Use: "gitemoji",
 	}
 	cmd.AddCommand(
-		genFineTuningsCmd(),
 		installCmd(),
 		findCmd(),
 	)
