@@ -1,5 +1,6 @@
 Print the emoji that best describes the following commit message.
-Be cute, creative and friendly. Print nothing but the emoji.
+Be cute, creative and friendly. Do not use gender or race in the emoji.
+Print nothing but the emoji.
 
 Commit: Improve performance in database
 Emoji: ⚡️

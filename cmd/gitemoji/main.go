@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	_ "embed"
@@ -15,7 +14,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/forPelevin/gomoji"
 	"github.com/manifoldco/promptui"
-	tokenizer "github.com/samber/go-gpt-3-encoder"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 )
@@ -57,6 +55,14 @@ func outOfIdeas() {
 	os.Exit(0)
 }
 
+func excludeEmojisPromot(m map[string]struct{}) string {
+	var s strings.Builder
+	for k := range m {
+		fmt.Fprintf(&s, "Do NOT use %v as an emoji\n", k)
+	}
+	return s.String()
+}
+
 func main() {
 	var (
 		readStdin     bool
@@ -89,14 +95,13 @@ func main() {
 			// Remove existing emojis to make it easy to retry.
 			originalCommitMessageNoEmoji := gomoji.RemoveEmojis(originalCommitMessage)
 
-			logitBias := make(map[string]int)
+			exclusions := make(map[string]struct{})
 			try := func() string {
 				resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
 					Model:       "text-davinci-003",
 					MaxTokens:   16,
 					Temperature: 1,
-					Prompt:      promptPrelude + "\nCommit: " + gomoji.RemoveEmojis(originalCommitMessageNoEmoji),
-					LogitBias:   logitBias,
+					Prompt:      promptPrelude + excludeEmojisPromot(exclusions) + "\nCommit: " + gomoji.RemoveEmojis(originalCommitMessageNoEmoji),
 				})
 				if err != nil {
 					flog.Fatalf("create completion: %v", err)
@@ -141,20 +146,14 @@ func main() {
 						}
 						result, err := p.Run()
 						if err != nil {
-							flog.Errorf("Prompt failed %v\n", err)
+							color.Red("Exiting")
+							os.Exit(1)
 						}
 						switch {
 						case result == "r":
-							enc, err := tokenizer.NewEncoder()
-							if err != nil {
-								flog.Fatalf("new encoder: %v", err)
-							}
-							tokens, err := enc.Encode(gomoji.CollectAll(newCommitMessage)[0].Character)
-							if err != nil {
-								flog.Fatalf("encode: %v", err)
-							}
+							emoj := gomoji.CollectAll(newCommitMessage)[0].Character
 							// Penalize the current emoji so we don't get it again.
-							logitBias[strconv.Itoa(tokens[0])] = -100
+							exclusions[emoj] = struct{}{}
 							newCommitMessage = try()
 							if newCommitMessage == "" {
 								outOfIdeas()
