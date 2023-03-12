@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	_ "embed"
@@ -14,6 +15,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/forPelevin/gomoji"
 	"github.com/manifoldco/promptui"
+	tokenizer "github.com/samber/go-gpt-3-encoder"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 )
@@ -50,6 +52,11 @@ func amendName(s string) error {
 	return nil
 }
 
+func outOfIdeas() {
+	color.Yellow("I'm all out of ideas. 😞 you're on your own.\n")
+	os.Exit(0)
+}
+
 func main() {
 	var (
 		readStdin     bool
@@ -82,12 +89,14 @@ func main() {
 			// Remove existing emojis to make it easy to retry.
 			originalCommitMessageNoEmoji := gomoji.RemoveEmojis(originalCommitMessage)
 
+			logitBias := make(map[string]int)
 			try := func() string {
 				resp, err := client.CreateCompletion(cmd.Context(), openai.CompletionRequest{
 					Model:       "text-davinci-003",
-					MaxTokens:   10,
-					Temperature: 0.8,
+					MaxTokens:   16,
+					Temperature: 1,
 					Prompt:      promptPrelude + "\nCommit: " + gomoji.RemoveEmojis(originalCommitMessageNoEmoji),
+					LogitBias:   logitBias,
 				})
 				if err != nil {
 					flog.Fatalf("create completion: %v", err)
@@ -101,7 +110,6 @@ func main() {
 					}
 				}
 				if best == "" {
-					color.Yellow("No emoji found\n")
 					return ""
 				}
 
@@ -112,7 +120,7 @@ func main() {
 
 			newCommitMessage := try()
 			if newCommitMessage == "" {
-				return
+				outOfIdeas()
 			}
 
 			if newCommitMessage == originalCommitMessage {
@@ -137,7 +145,20 @@ func main() {
 						}
 						switch {
 						case result == "r":
+							enc, err := tokenizer.NewEncoder()
+							if err != nil {
+								flog.Fatalf("new encoder: %v", err)
+							}
+							tokens, err := enc.Encode(gomoji.CollectAll(newCommitMessage)[0].Character)
+							if err != nil {
+								flog.Fatalf("encode: %v", err)
+							}
+							// Penalize the current emoji so we don't get it again.
+							logitBias[strconv.Itoa(tokens[0])] = -100
 							newCommitMessage = try()
+							if newCommitMessage == "" {
+								outOfIdeas()
+							}
 						case result == "y":
 							break prompt
 						default:
