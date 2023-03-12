@@ -2,6 +2,8 @@
 
 Spruce up your commit messages with emojis courtesy of GPT-3.
 
+![Screenshot](img/cli.png)
+
 ## Usage
 
 1. Sign up for [OpenAI](https://beta.openai.com/) and get an API key [here](https://platform.openai.com/account/api-keys).
@@ -15,5 +17,7 @@ If you care deeply about emojis, you can add the following to your `~/.gitconfig
 
 ```
 [alias]
-    emoji = "! go run github.com/ammario/git-emoji/cmd/gitemoji"
+    emoji = "! ~/go/bin/gitemoji"
 ```
+
+Then you can run `git emoji`, fully committing to the emoji lifestyle.
